@@ -16,11 +16,29 @@ export default function Login() {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) { alert(error.message); setLoading(false); return }
 
-    const { data: profile } = await supabase
-      .from('profiles').select('role').eq('id', data.user.id).single()
+    if (!data?.user?.id) {
+      alert('Login succeeded, but user session is missing. Please try again.')
+      setLoading(false)
+      return
+    }
 
-    if (profile?.role !== 'admin') {
-      alert('Access denied')
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', data.user.id)
+      .maybeSingle()
+
+    if (profileError) {
+      alert(`Cannot read profile role: ${profileError.message}`)
+      await supabase.auth.signOut()
+      setLoading(false)
+      return
+    }
+
+    const normalizedRole = (profile?.role || '').toString().trim().toLowerCase()
+
+    if (normalizedRole !== 'admin') {
+      alert(`Access denied. Role found: ${profile?.role ?? 'none'}`)
       await supabase.auth.signOut()
       setLoading(false)
       return

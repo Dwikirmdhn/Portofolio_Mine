@@ -50,7 +50,7 @@ const ProfileImage = memo(() => (
           <div className="absolute inset-0 bg-gradient-to-t from-purple-500/20 via-transparent to-blue-500/20 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-700 hidden sm:block" />
           
           <img
-            src="/Photo.jpg"
+            src="/foto dwiki .jpg"
             alt="Profile"
             className="w-full h-full object-cover transition-all duration-700 group-hover:scale-110 group-hover:rotate-2"
             loading="lazy"
@@ -209,7 +209,7 @@ const AboutPage = () => {
                 data-aos-duration="1300"
                 itemProp="name"
               >
-                Eki Zulfar Rachman
+                Dwiky Ramadhan
               </span>
             </h2>
             
@@ -218,8 +218,7 @@ const AboutPage = () => {
               data-aos="fade-right"
               data-aos-duration="1500"
             >
-        Saya adalah mahasiswa Teknik Informatika yang berfokus pada pengembangan Front-End. 
-Saya berfokus pada penciptaan pengalaman digital yang menarik dan selalu berupaya memberikan solusi terbaik dalam setiap proyek yang saya kerjakan.
+        Full Stack Developer skilled in building end-to-end web applications using HTML, CSS, JavaScript, React, and Angular. Experienced in Node.js, Express, and databases like MySQL, PostgreSQL, and MongoDB, with a focus on performance, scalability, and security, and strong collaboration with design and UX teams.
                   </p>
 
                {/* Quote Section */}
@@ -245,7 +244,7 @@ Saya berfokus pada penciptaan pengalaman digital yang menarik dan selalu berupay
       </div>
 
             <div className="flex flex-col lg:flex-row items-center lg:items-start gap-4 lg:gap-4 lg:px-0 w-full">
-              <a href="https://drive.google.com/drive/folders/1BOm51Grsabb3zj6Xk27K-iRwI1zITcpo" className="w-full lg:w-auto">
+              <a href="https://drive.google.com/file/d/1-Ov0ci7YqL_Eii6JAhs-Wi9BsUp6FYZu/view?usp=drive_link" className="w-full lg:w-auto">
               <button 
                 data-aos="fade-up"
                 data-aos-duration="800"
