@@ -338,13 +338,31 @@ export default function Projects() {
   const [editProject, setEditProject] = useState(null);
   const [uploading, setUploading] = useState(false);
 
+  const normalizeProject = (row) => ({
+    ...row,
+    Title: row.Title ?? row.title ?? "",
+    Description: row.Description ?? row.description ?? "",
+    Img: row.Img ?? row.img ?? "",
+    TechStack: row.TechStack ?? row.tech_stack ?? [],
+    Features: row.Features ?? row.features ?? [],
+    Link: row.Link ?? row.link ?? "",
+    Github: row.Github ?? row.github ?? "",
+  });
+
   const fetchProjects = async () => {
     setLoading(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("projects")
       .select("*")
       .order("created_at", { ascending: false });
-    setProjects(data || []);
+    if (error) {
+      console.error("Failed to fetch projects:", error.message);
+      alert(`Failed to fetch projects: ${error.message}`);
+      setProjects([]);
+      setLoading(false);
+      return;
+    }
+    setProjects((data || []).map(normalizeProject));
     setLoading(false);
   };
 
@@ -354,7 +372,11 @@ export default function Projects() {
 
   const uploadImage = async (f) => {
     const fileName = `${Date.now()}-${f.name}`;
-    await supabase.storage.from("project-images").upload(fileName, f);
+    const { error: uploadError } = await supabase.storage
+      .from("project-images")
+      .upload(fileName, f);
+    if (uploadError) throw uploadError;
+
     const { data } = supabase.storage
       .from("project-images")
       .getPublicUrl(fileName);
@@ -362,60 +384,83 @@ export default function Projects() {
   };
 
   const handleCreate = async (form, file) => {
-    setUploading(true);
-    let imgUrl = "";
-    if (file) imgUrl = await uploadImage(file);
-    await supabase.from("projects").insert({
-      Title: form.Title,
-      Description: form.Description,
-      Img: imgUrl,
-      TechStack: form.TechStack.split(",")
-        .map((s) => s.trim())
-        .filter(Boolean),
-      Features: form.Features.split(",")
-        .map((s) => s.trim())
-        .filter(Boolean),
-      Link: form.Link,
-      Github: form.Github,
-    });
-    setShowCreate(false);
-    setUploading(false);
-    fetchProjects();
+    try {
+      setUploading(true);
+      let imgUrl = "";
+      if (file) imgUrl = await uploadImage(file);
+
+      const { error } = await supabase.from("projects").insert({
+        title: form.Title,
+        description: form.Description,
+        img: imgUrl,
+        tech_stack: form.TechStack.split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+        features: form.Features.split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+        link: form.Link,
+        github: form.Github,
+      });
+
+      if (error) throw error;
+      setShowCreate(false);
+      fetchProjects();
+    } catch (error) {
+      console.error("Failed to create project:", error.message);
+      alert(`Failed to create project: ${error.message}`);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleEdit = async (form, file) => {
-    setUploading(true);
-    let imgUrl = editProject.Img || "";
-    if (file) imgUrl = await uploadImage(file);
-    await supabase
-      .from("projects")
-      .update({
-        Title: form.Title,
-        Description: form.Description,
-        Img: imgUrl,
-        TechStack: form.TechStack.split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
-        Features: form.Features.split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
-        Link: form.Link,
-        Github: form.Github,
-      })
-      .eq("id", editProject.id);
-    setEditProject(null);
-    setUploading(false);
-    fetchProjects();
+    try {
+      setUploading(true);
+      let imgUrl = editProject.Img || "";
+      if (file) imgUrl = await uploadImage(file);
+
+      const { error } = await supabase
+        .from("projects")
+        .update({
+          title: form.Title,
+          description: form.Description,
+          img: imgUrl,
+          tech_stack: form.TechStack.split(",")
+            .map((s) => s.trim())
+            .filter(Boolean),
+          features: form.Features.split(",")
+            .map((s) => s.trim())
+            .filter(Boolean),
+          link: form.Link,
+          github: form.Github,
+        })
+        .eq("id", editProject.id);
+
+      if (error) throw error;
+      setEditProject(null);
+      fetchProjects();
+    } catch (error) {
+      console.error("Failed to update project:", error.message);
+      alert(`Failed to update project: ${error.message}`);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const deleteProject = async (id) => {
     if (!confirm("Delete this project?")) return;
-    await supabase.from("projects").delete().eq("id", id);
+    const { error } = await supabase.from("projects").delete().eq("id", id);
+    if (error) {
+      console.error("Failed to delete project:", error.message);
+      alert(`Failed to delete project: ${error.message}`);
+      return;
+    }
     fetchProjects();
   };
 
   return (
-    <div className="space-y-6z ">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
         <div className="flex items-center gap-3">

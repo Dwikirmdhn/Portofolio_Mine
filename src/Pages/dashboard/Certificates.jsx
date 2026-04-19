@@ -60,10 +60,27 @@ export default function Certificates() {
   const [dragOver, setDragOver] = useState(false)
   const [loading, setLoading] = useState(true)
 
+  const normalizeCertificate = (row) => ({
+    ...row,
+    Img: row.Img ?? row.img ?? '',
+  })
+
   const fetchCerts = async () => {
     setLoading(true)
-    const { data } = await supabase.from('certificates').select('*').order('created_at', { ascending: false })
-    setCerts(data || [])
+    const { data, error } = await supabase
+      .from('certificates')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Failed to fetch certificates:', error.message)
+      alert(`Failed to fetch certificates: ${error.message}`)
+      setCerts([])
+      setLoading(false)
+      return
+    }
+
+    setCerts((data || []).map(normalizeCertificate))
     setLoading(false)
   }
 
@@ -77,18 +94,43 @@ export default function Certificates() {
 
   const uploadImage = async () => {
     if (!file) return
-    setUploading(true)
-    const fileName = `cert-${Date.now()}-${file.name}`
-    await supabase.storage.from('certificate-images').upload(fileName, file)
-    const { data } = supabase.storage.from('certificate-images').getPublicUrl(fileName)
-    await supabase.from('certificates').insert({ Img: data.publicUrl })
-    setFile(null); setPreview(null); setUploading(false)
-    fetchCerts()
+    try {
+      setUploading(true)
+      const fileName = `cert-${Date.now()}-${file.name}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('certificate-images')
+        .upload(fileName, file)
+      if (uploadError) throw uploadError
+
+      const { data } = supabase.storage
+        .from('certificate-images')
+        .getPublicUrl(fileName)
+
+      const { error } = await supabase
+        .from('certificates')
+        .insert({ img: data.publicUrl })
+      if (error) throw error
+
+      setFile(null)
+      setPreview(null)
+      fetchCerts()
+    } catch (error) {
+      console.error('Failed to upload certificate:', error.message)
+      alert(`Failed to upload certificate: ${error.message}`)
+    } finally {
+      setUploading(false)
+    }
   }
 
   const deleteCert = async (id) => {
     if (!confirm('Delete this certificate?')) return
-    await supabase.from('certificates').delete().eq('id', id)
+    const { error } = await supabase.from('certificates').delete().eq('id', id)
+    if (error) {
+      console.error('Failed to delete certificate:', error.message)
+      alert(`Failed to delete certificate: ${error.message}`)
+      return
+    }
     fetchCerts()
   }
 
@@ -121,9 +163,8 @@ export default function Certificates() {
             onDragOver={e => { e.preventDefault(); setDragOver(true) }}
             onDragLeave={() => setDragOver(false)}
             onDrop={e => { e.preventDefault(); setDragOver(false); handleFile(e.dataTransfer.files[0]) }}
-            className={`flex flex-col items-center justify-center w-full min-h-[160px] rounded-xl border-2 border-dashed cursor-pointer transition-all duration-300 ${
-              dragOver ? 'border-indigo-400/60 bg-indigo-500/10' : 'border-white/12 bg-white/4 hover:border-indigo-500/35 hover:bg-white/7'
-            }`}
+            className={`flex flex-col items-center justify-center w-full min-h-[160px] rounded-xl border-2 border-dashed cursor-pointer transition-all duration-300 ${dragOver ? 'border-indigo-400/60 bg-indigo-500/10' : 'border-white/12 bg-white/4 hover:border-indigo-500/35 hover:bg-white/7'
+              }`}
           >
             {preview ? (
               <img src={preview} alt="preview" className="max-h-40 object-contain rounded-lg p-2" />
